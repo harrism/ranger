@@ -5,9 +5,6 @@
 
 #include <thrust/device_vector.h>
 
-#include <cstdio>
-#include <iostream>
-
 __global__ void size_kernel(int N, int* out)
 {
   for (auto i : grid_stride_range(N)) {
@@ -149,6 +146,57 @@ TEST_CASE("Counting in a kernel", "[grid-stride] [range]")
     thrust::copy(d_data.begin(), d_data.end(), data.begin());
 
     INFO("block_size: " << block_size << " grid_size: " << grid_size << " step: " << step);
+    REQUIRE_THAT(data, Catch::Equals(expected));
+  }
+}
+
+template <typename Predicate>
+__global__ void valid_if_kernel(active_mask_type* output, thread_index_type size, Predicate pred)
+{
+  constexpr std::int32_t leader_lane{0};
+  constexpr std::int32_t warp_size{32};
+  thread_index_type const lane_id{threadIdx.x % warp_size};
+
+  active_mask_type initial_active_mask = 0xFFFF'FFFF;
+
+  for (auto [i, active_mask] : grid_stride_range(size, initial_active_mask)) {
+    active_mask_type ballot = __ballot_sync(active_mask, pred(i));
+    if (lane_id == leader_lane) { output[i / warp_size] = ballot; }
+  }
+}
+
+struct even_predicate {
+  __device__ bool operator()(thread_index_type i) { return (i % 2) != 1; }
+};
+
+TEST_CASE("Active mask in a kernel", "[grid-stride] [range] [active_mask]")
+{
+  SECTION("Active mask with a size-only grid-stride range matches predicate")
+  {
+    auto N = 100;
+    std::vector<active_mask_type> expected((N + 31) / 32, 0x55555555);
+    auto even_bits = [](int n) {
+      int mask = 0;
+      for (auto i : step_ranger<int>(0, n, 2)) {
+        mask += (1 << i);
+      }
+      return mask;
+    };
+
+    expected[expected.size() - 1] = even_bits(N - 32 * (expected.size() - 1));
+
+    auto pred = even_predicate{};
+    thrust::device_vector<active_mask_type> d_data((N + 31) / 32, 0);
+
+    auto block_size = GENERATE(32, 128, 160, 512);
+    auto grid_size  = GENERATE(1, 10, 100);
+
+    valid_if_kernel<<<grid_size, block_size>>>(thrust::raw_pointer_cast(d_data.data()), N, pred);
+
+    std::vector<active_mask_type> data((N + 31) / 32, 0);
+    thrust::copy(d_data.begin(), d_data.end(), data.begin());
+
+    INFO("block_size: " << block_size << " grid_size: " << grid_size);
     REQUIRE_THAT(data, Catch::Equals(expected));
   }
 }
