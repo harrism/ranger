@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20.1 FATAL_ERROR)
 
-project(StreamSafetyFirst
+project(Ranger
         VERSION 00.01.00
         LANGUAGES CXX CUDA)
 
