@@ -22,6 +22,8 @@
 #define DEVICE_CALLABLE
 #endif
 
+namespace ranger {
+
 namespace detail {
 
 template <typename T>
@@ -302,3 +304,5 @@ __device__ masked_step_ranger<thread_index_type> grid_stride_range(T begin,
 }
 
 #endif
+
+}  // namespace ranger

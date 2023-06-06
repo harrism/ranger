@@ -21,6 +21,8 @@
 
 #include <thrust/device_vector.h>
 
+using namespace ranger;
+
 __global__ void size_kernel(int N, int* out)
 {
   for (auto i : grid_stride_range(N)) {
