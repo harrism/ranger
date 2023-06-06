@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#pragma once
-
 #include <ranger/ranger.hpp>
 
 #define CATCH_CONFIG_MAIN
