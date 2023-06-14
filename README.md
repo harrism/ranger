@@ -1,4 +1,4 @@
-# Ranger: CUDA-enabled range helpers for range-based for loops
+# Ranger: CUDA-enabled range helpers for C++ range-based for loops
 
 Facilities for generating simple index ranges for C++ range-based for loops. Includes support for
 CUDA grid-stride ranges.
